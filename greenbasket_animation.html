@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GreenBasket — Supermarket Reward Animation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0A1520;
+      display: flex; align-items: center; justify-content: center;
+      width: 100vw; height: 100vh; overflow: hidden;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    #wrap { position: absolute; top: 50%; left: 50%; }
+    canvas {
+      display: block; border-radius: 14px;
+      box-shadow: 0 28px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06);
+    }
+    #tagline {
+      position: absolute; bottom: -36px; left: 0; right: 0;
+      text-align: center; color: rgba(255,255,255,0.28);
+      font-size: 11px; letter-spacing: 3.5px; text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="tagline">GreenBasket &nbsp;·&nbsp; Smarter Shopping &nbsp;·&nbsp; Healthier Choices</div>
+</div>
+<script>
+// ═══════════════════════════════════════════════════════
+//  GREENBASKET — Supermarket Reward Animation  v2
+// ═══════════════════════════════════════════════════════
+const W = 1200, H = 675;
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = W; canvas.height = H;
+
+// ── Viewport scaling ────────────────────────────────────
+function resize() {
+  const s = Math.min(window.innerWidth / (W + 40), window.innerHeight / (H + 72));
+  const w = document.getElementById('wrap');
+  w.style.transform = `translate(-50%,-50%) scale(${s})`;
+  w.style.width = W + 'px'; w.style.height = H + 'px';
+}
+resize(); window.addEventListener('resize', resize);
+
+// ── Colour palette ──────────────────────────────────────
+const C = {
+  // Environment — warmer, brighter
+  ceilA:'#EEF6FD', ceilB:'#F6FAFE',
+  wallA:'#FAF6EF', wallB:'#F2EDE3',
+  floorA:'#EDE6D8', floorB:'#E0D7C8',
+  base:'#C8C0B2',
+  // GreenBasket brand — richer greens
+  gbDk:'#163D29', gb:'#1E6B3C', gbMd:'#2A7A3B',
+  gbBr:'#318C36', gbLt:'#4CAF50', gbPl:'#C8E6C9', gbHi:'#E8F5E9',
+  gold:'#D4900A', goldLt:'#F9C74F',
+  // Accents — richer blue, cleaner red
+  acBlue:'#1565C0', acRed:'#C62828',
+  // Shelving — warmer, richer wood
+  wdFace:'#C8956A', wdDk:'#8A5C38', wdBk:'#FCF8F2', wdHi:'#E2C292',
+  // Checkout — warmer counter, richer belt
+  ctrA:'#F2F6F8', ctrB:'#D4DFE6', ctrDk:'#A8BACA',
+  belt:'#3D5C6E', beltLt:'#5C7E92',
+  regBg:'#182238', scrBg:'#0C1928', scrHi:'#1565C0',
+  // People — main shopper vivid blue for clear identification
+  sk1:'#F2C29C', sk2:'#D6AA82',
+  h1:'#2B190D', h2:'#483625', h3:'#5C4A3A',
+  mSh:'#1976D2', mPa:'#1A2A38', mSo:'#180C06',   // vivid blue shirt
+  b1Sh:'#607D8B', b1Pa:'#3D5260',
+  b2Sh:'#4E8B6C', b2Pa:'#2E4A3A',                 // muted green for variety
+  csSh:'#E64A19', csPa:'#232E35',                  // brighter orange cashier
+  // Product colours — vivid grocery packaging
+  prod:['#E53935','#1E88E5','#FB8C00','#43A047','#8E24AA','#00ACC1','#E91E63','#F4511E','#039BE5','#7CB342'],
+};
+
+// ── Math helpers ────────────────────────────────────────
+const lerp  = (a,b,t) => a + (b-a)*t;
+const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
+const norm  = (v,a,b) => clamp((v-a)/(b-a),0,1);
+const ease = {
+  out3:  t => 1 - Math.pow(1-t, 3),
+  in3:   t => t*t*t,
+  io:    t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2,
+  outQ:  t => 1 - (1-t)*(1-t),
+  outBk: t => { const c=2.70158; return 1+c*Math.pow(t-1,3)+(c+1)*Math.pow(t-1,2); },
+  sin:   t => -(Math.cos(Math.PI*t)-1)/2,
+};
+
+function rrect(x,y,w,h,r){
+  ctx.beginPath(); ctx.roundRect(x,y,w,h,typeof r==='number'?[r]:r);
+}
+function circ(x,y,r){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); }
+const sh = (b,col='rgba(0,0,0,0.18)') => { ctx.shadowBlur=b; ctx.shadowColor=col; };
+const nsh = () => { ctx.shadowBlur=0; ctx.shadowColor='transparent'; };
+
+// ── Timeline  (total 11.5 s) ────────────────────────────
+// 0  0.0–1.8   scene establishes, fade-in
+// 1  1.8–3.3   main shopper identified / spotlit
+// 2  3.3–5.8   shopper walks to checkout
+// 3  5.8–7.2   items scan, register ticks
+// 4  7.2–8.6   checkout breakdown: subtotal → discount → total  ← NEW
+// 5  8.6–10.2  GreenBasket reward popup
+// 6  10.2–11.1 payment confirmed, receipt
+// 7  11.1–11.5 fade out → loop
+const PH = [
+  {s:0,    e:1.8  },
+  {s:1.8,  e:3.3  },
+  {s:3.3,  e:5.8  },
+  {s:5.8,  e:7.2  },
+  {s:7.2,  e:8.6  },
+  {s:8.6,  e:10.2 },
+  {s:10.2, e:11.1 },
+  {s:11.1, e:11.5 },
+];
+const LOOP = 11.5;
+
+function getPhase(t) {
+  const tt = t % LOOP;
+  for (let i=0;i<PH.length;i++){
+    if(tt>=PH[i].s && tt<PH[i].e)
+      return {phase:i, p:(tt-PH[i].s)/(PH[i].e-PH[i].s), tt};
+  }
+  return {phase:PH.length-1, p:1, tt};
+}
+
+// ── State ───────────────────────────────────────────────
+let beltOff=0, regTotal=0, walkMain=0, walkBg1=0.25, walkBg2=0.65;
+let particles=[], ptFired=false, prevPhase=-1, T0=null;
+let scanFlash=0;   // brightness flash at scanner
+let regLabel='TOTAL'; // label shown on register screen
+
+// ── Confetti particles ──────────────────────────────────
+function spawnConfetti(x,y,n=22){
+  const cols=[C.gbLt,C.gbBr,C.gold,C.goldLt,'#FFFFFF',C.gbPl];
+  for(let i=0;i<n;i++){
+    const a = (Math.PI*2*i/n) + (Math.random()-.5)*.8;
+    const spd = 2.5+Math.random()*3.5;
+    particles.push({
+      x,y,
+      vx:Math.cos(a)*spd, vy:Math.sin(a)*spd-2.8,
+      life:1, decay:.013+Math.random()*.009,
+      w:3+Math.random()*4, h:6+Math.random()*5,
+      rot:Math.random()*Math.PI*2,
+      rotV:(Math.random()-.5)*.18,
+      col:cols[Math.floor(Math.random()*cols.length)],
+    });
+  }
+}
+function updateParticles(){
+  particles=particles.filter(p=>p.life>0);
+  particles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy+=.09; p.vx*=.98;
+    p.rot+=p.rotV; p.life-=p.decay;
+  });
+}
+function drawParticles(){
+  particles.forEach(p=>{
+    ctx.save(); ctx.globalAlpha=Math.max(0,p.life*.9);
+    ctx.fillStyle=p.col;
+    ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+    ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    ctx.restore();
+  });
+  ctx.globalAlpha=1;
+}
+
+// ── Background: ceiling, wall, floor ───────────────────
+function drawBackground(){
+  // Ceiling — warm bright white
+  const cg=ctx.createLinearGradient(0,0,0,170);
+  cg.addColorStop(0,C.ceilA); cg.addColorStop(1,C.ceilB);
+  ctx.fillStyle=cg; ctx.fillRect(0,0,W,170);
+
+  // Recessed ceiling panels — stronger warm glow pools
+  for(let lx=110;lx<W;lx+=195){
+    // wide warm glow cone (more visible)
+    const pool=ctx.createRadialGradient(lx,0,0,lx,0,260);
+    pool.addColorStop(0,'rgba(255,248,220,0.32)');
+    pool.addColorStop(0.5,'rgba(255,248,210,0.10)');
+    pool.addColorStop(1,'rgba(255,248,210,0)');
+    ctx.fillStyle=pool; ctx.fillRect(lx-260,0,520,260);
+    // fixture housing
+    ctx.fillStyle='#E2ECF4'; rrect(lx-32,0,64,6,0); ctx.fill();
+    ctx.fillStyle='#FFFFFF'; rrect(lx-26,2,52,10,2); ctx.fill();
+    // bright inner strip
+    const ig=ctx.createLinearGradient(0,2,0,12);
+    ig.addColorStop(0,'#FFFEF0'); ig.addColorStop(1,'rgba(255,254,240,0)');
+    ctx.fillStyle=ig; rrect(lx-24,3,48,7,1); ctx.fill();
+  }
+
+  // Wall — bright warm white with slight warmth gradient
+  const wg=ctx.createLinearGradient(0,130,0,382);
+  wg.addColorStop(0,C.wallA); wg.addColorStop(1,C.wallB);
+  ctx.fillStyle=wg; ctx.fillRect(0,130,W,252);
+
+  // Brand accent stripe — slightly taller, richer
+  ctx.fillStyle=C.gbDk; ctx.fillRect(0,128,W,6);
+  ctx.fillStyle=C.acBlue; ctx.fillRect(0,134,W,3);
+
+  // GreenBasket store sign — wider, with a soft glow
+  const sw=340, sh2=58, sx=W/2-sw/2, sy=144;
+  // Glow halo behind sign
+  sh(28,'rgba(49,140,54,0.35)');
+  rrect(sx,sy,sw,sh2,9);
+  const sig=ctx.createLinearGradient(sx,sy,sx+sw,sy+sh2);
+  sig.addColorStop(0,C.gbDk); sig.addColorStop(0.5,C.gb); sig.addColorStop(1,C.gbMd);
+  ctx.fillStyle=sig; ctx.fill(); nsh();
+  // Inner highlight edge
+  ctx.fillStyle='rgba(255,255,255,0.08)'; rrect(sx,sy,sw,10,[9,9,0,0]); ctx.fill();
+  // Leaf mark
+  _drawLeafMark(sx+32,sy+sh2/2);
+  ctx.fillStyle='#FFFFFF';
+  ctx.font='bold 23px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('GreenBasket',W/2+10,sy+sh2/2+9);
+  ctx.fillStyle=C.gbPl;
+  ctx.font='10px "Segoe UI",system-ui,sans-serif';
+  ctx.letterSpacing='2px';
+  ctx.fillText('SMARTER  ·  HEALTHIER  ·  GREENER',W/2+10,sy+sh2-5);
+  ctx.letterSpacing='0px';
+
+  // Floor — warmer stone tiles with clearer grout contrast
+  const fg=ctx.createLinearGradient(0,382,0,H);
+  fg.addColorStop(0,C.floorA); fg.addColorStop(1,C.floorB);
+  ctx.fillStyle=fg; ctx.fillRect(0,382,W,H-382);
+  // Grout grid — slightly more visible for depth
+  ctx.strokeStyle='rgba(0,0,0,0.07)'; ctx.lineWidth=1;
+  for(let x=0;x<=W;x+=120){ ctx.beginPath(); ctx.moveTo(x,382); ctx.lineTo(x,H); ctx.stroke(); }
+  [382,442,504,568,634].forEach(ry=>{
+    ctx.beginPath(); ctx.moveTo(0,ry); ctx.lineTo(W,ry); ctx.stroke();
+  });
+  // Floor sheen strip near wall
+  const sheen=ctx.createLinearGradient(0,382,0,426);
+  sheen.addColorStop(0,'rgba(255,255,255,0.14)');
+  sheen.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=sheen; ctx.fillRect(0,382,W,44);
+
+  // Wall-floor junction
+  const jsh=ctx.createLinearGradient(0,368,0,398);
+  jsh.addColorStop(0,'rgba(0,0,0,0.17)'); jsh.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=jsh; ctx.fillRect(0,368,W,30);
+  ctx.fillStyle=C.base; ctx.fillRect(0,368,W,13);
+}
+
+function _drawLeafMark(cx,cy){
+  ctx.save(); ctx.translate(cx,cy);
+  ctx.fillStyle='#FFFFFF'; ctx.globalAlpha=0.7;
+  ctx.beginPath();
+  ctx.moveTo(0,-11); ctx.bezierCurveTo(9,-9,12,0,0,11);
+  ctx.bezierCurveTo(-12,0,-9,-9,0,-11); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.18)'; ctx.lineWidth=.5;
+  ctx.beginPath(); ctx.moveTo(0,-11); ctx.lineTo(0,11); ctx.stroke();
+  ctx.restore(); ctx.globalAlpha=1;
+}
+
+// ── Shelf unit ──────────────────────────────────────────
+function drawShelf(x,y,w,h){
+  // Back panel
+  ctx.fillStyle=C.wdBk; ctx.fillRect(x+8,y,w-16,h);
+  // Subtle back shadow
+  const bsh=ctx.createLinearGradient(x+8,0,x+40,0);
+  bsh.addColorStop(0,'rgba(0,0,0,0.06)'); bsh.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=bsh; ctx.fillRect(x+8,y,32,h);
+
+  // Side uprights
+  ctx.fillStyle=C.wdDk; ctx.fillRect(x,y,9,h); ctx.fillRect(x+w-9,y,9,h);
+  // Upright highlight
+  ctx.fillStyle=C.wdHi; ctx.fillRect(x+1,y,3,h);
+
+  // Top cap
+  sh(6,'rgba(0,0,0,0.18)');
+  rrect(x-5,y-10,w+10,14,3); ctx.fillStyle=C.wdFace; ctx.fill(); nsh();
+  ctx.fillStyle=C.wdHi; ctx.fillRect(x-5,y-10,w+10,4);
+
+  // Shelf boards
+  const sYs=[y+h*.23,y+h*.46,y+h*.68,y+h*.9];
+  sYs.forEach((sy,si)=>{
+    // shelf board
+    ctx.fillStyle=C.wdFace; ctx.fillRect(x,sy-9,w,11);
+    ctx.fillStyle=C.wdHi;   ctx.fillRect(x,sy-9,w,3);
+    ctx.fillStyle=C.wdDk;   ctx.fillRect(x,sy+2,w,2);
+
+    // Products on this shelf
+    let px=x+10, pidx=(Math.floor(x/80)+si*3);
+    const ph=[38,28,32,22][si], pw=[15,18,12,20][si];
+    while(px+pw<x+w-8){
+      const col=C.prod[pidx%C.prod.length];
+      // product body
+      ctx.fillStyle=col; rrect(px,sy-ph-3,pw,ph,2); ctx.fill();
+      // label strip (white band)
+      ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fillRect(px+1,sy-15,pw-2,10);
+      // subtle highlight on product
+      const phg=ctx.createLinearGradient(px,sy-ph-3,px+pw,sy-ph-3);
+      phg.addColorStop(0,'rgba(255,255,255,0.2)'); phg.addColorStop(0.5,'rgba(255,255,255,0)');
+      ctx.fillStyle=phg; rrect(px,sy-ph-3,pw,ph,2); ctx.fill();
+      px+=pw+3; pidx++;
+    }
+  });
+  // Bottom toe
+  ctx.fillStyle=C.wdDk; ctx.fillRect(x,y+h-7,w,7);
+}
+
+function drawShelves(){
+  [[28,192,118,192],[156,192,118,192],[284,192,118,192]].forEach(
+    ([x,y,w,h])=>drawShelf(x,y,w,h)
+  );
+  // Aisle signs above shelves — richer colour, slightly taller
+  const lbls=['PRODUCE','DAIRY','BAKERY'];
+  const aisleColors=['#1B7A3E','#1565C0','#B5541A']; // green/blue/orange per aisle
+  lbls.forEach((lbl,i)=>{
+    const lx=87+i*128;
+    sh(4,'rgba(0,0,0,0.2)');
+    rrect(lx-38,182,76,17,3);
+    ctx.fillStyle=aisleColors[i]; ctx.fill(); nsh();
+    // label highlight edge
+    ctx.fillStyle='rgba(255,255,255,0.15)'; rrect(lx-38,182,76,5,[3,3,0,0]); ctx.fill();
+    ctx.fillStyle='#FFFFFF';
+    ctx.font='bold 10px "Segoe UI",system-ui,sans-serif';
+    ctx.textAlign='center'; ctx.fillText(lbl,lx,195);
+  });
+  // End-of-aisle promotional display unit — more prominent
+  sh(6,'rgba(0,0,0,0.15)');
+  ctx.fillStyle='#F0EDE6'; rrect(415,238,58,152,5); ctx.fill(); nsh();
+  // Header band — GreenBasket green
+  const eog=ctx.createLinearGradient(415,238,473,238);
+  eog.addColorStop(0,C.gbDk); eog.addColorStop(1,C.gb);
+  ctx.fillStyle=eog; rrect(415,238,58,34,[5,5,0,0]); ctx.fill();
+  ctx.fillStyle='#FFFFFF'; ctx.font='bold 9px system-ui'; ctx.textAlign='center';
+  ctx.fillText('FRESH',444,254); ctx.fillText('PICKS',444,266);
+  // Featured items — use vivid colours
+  [[C.prod[2],15,24],[C.prod[0],14,20],[C.prod[3],17,16]].forEach(([col,pw,ph],i)=>{
+    sh(3,'rgba(0,0,0,0.15)');
+    ctx.fillStyle=col; rrect(444-pw/2,281+i*40,pw,ph,3); ctx.fill(); nsh();
+    ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.fillRect(444-pw/2+1,281+i*40+1,pw-2,5);
+  });
+}
+
+// ── Shopping cart ───────────────────────────────────────
+function drawCart(x,y,scale=1,alpha=1){
+  ctx.save(); ctx.globalAlpha=alpha;
+  ctx.translate(x,y); ctx.scale(scale,scale);
+  const cw=48,ch=40;
+
+  // Ground shadow
+  ctx.fillStyle='rgba(0,0,0,0.08)';
+  ctx.beginPath(); ctx.ellipse(0,6,28,5,0,0,Math.PI*2); ctx.fill();
+
+  // Cart body
+  ctx.strokeStyle=C.beltLt; ctx.lineWidth=2.2; ctx.lineCap='round';
+  ctx.fillStyle='rgba(180,215,240,0.22)';
+  ctx.beginPath();
+  ctx.moveTo(-cw/2,-ch); ctx.lineTo(-cw/2+6,0);
+  ctx.lineTo(cw/2-6,0); ctx.lineTo(cw/2,-ch); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Basket grid lines
+  ctx.strokeStyle='rgba(100,140,160,0.35)'; ctx.lineWidth=1;
+  for(let i=1;i<3;i++){
+    ctx.beginPath();
+    ctx.moveTo(-cw/2+i*cw/3,-ch);
+    ctx.lineTo(-cw/2+6+i*(cw-12)/3,0); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(-cw/2,-ch/2); ctx.lineTo(cw/2,-ch/2); ctx.stroke();
+
+  // Handle bar
+  ctx.strokeStyle=C.belt; ctx.lineWidth=3;
+  ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-cw/2-7,-ch-14); ctx.lineTo(cw/2+7,-ch-14); ctx.stroke();
+  ctx.lineWidth=2;
+  [[-cw/2+3,-ch],[cw/2-3,-ch]].forEach(([hx])=>{
+    ctx.beginPath(); ctx.moveTo(hx,-ch-14); ctx.lineTo(hx,-ch); ctx.stroke();
+  });
+
+  // Wheels
+  [[-cw/2+9,4],[cw/2-9,4]].forEach(([wx,wy])=>{
+    sh(3,'rgba(0,0,0,0.2)');
+    ctx.fillStyle=C.belt; circ(wx,wy,6); ctx.fill(); nsh();
+    ctx.fillStyle=C.beltLt; circ(wx,wy,3); ctx.fill();
+  });
+
+  // Items in basket
+  [['#5DAA60',13,18],['#E86A4A',11,16],['#F5AB3D',15,13]].forEach(([col,iw,ih],i)=>{
+    ctx.fillStyle=col; rrect(-cw/2+7+i*14,-ch+5,iw,ih,2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.fillRect(-cw/2+8+i*14,-ch+6,iw-2,4);
+  });
+
+  ctx.restore();
+}
+
+// ── Person ──────────────────────────────────────────────
+// Proportions improved: larger head, cleaner body, better arms
+function drawPerson(x,y,type,walk=0,flipX=false,alpha=1){
+  const pal={
+    main:   {sk:C.sk1,hr:C.h1,sh:C.mSh, pa:C.mPa, so:C.mSo },
+    bg1:    {sk:C.sk2,hr:C.h2,sh:C.b1Sh,pa:C.b1Pa,so:'#2C2C2C'},
+    bg2:    {sk:C.sk1,hr:C.h3,sh:C.b2Sh,pa:C.b2Pa,so:'#222'},
+    cashier:{sk:C.sk1,hr:C.h1,sh:C.csSh,pa:C.csPa,so:'#111'},
+  };
+  const p=pal[type]||pal.bg1;
+  const S=type==='main'?1.0:0.76;
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.translate(x,y);
+  ctx.scale(flipX?-S:S,S);
+
+  const lA=Math.sin(walk*Math.PI*2)*20;
+  const rA=-lA;
+  const lAm=-rA*.5;
+  const rAm=-lA*.5;
+
+  // Drop shadow
+  ctx.fillStyle='rgba(0,0,0,0.10)';
+  ctx.beginPath(); ctx.ellipse(0,84,20,5,0,0,Math.PI*2); ctx.fill();
+
+  // ── Legs ──
+  [[- 9,lA],[9,rA]].forEach(([tx,ang])=>{
+    ctx.save(); ctx.translate(tx,46); ctx.rotate(ang*Math.PI/180);
+    ctx.fillStyle=p.pa; rrect(-6,0,12,37,[3,3,5,5]); ctx.fill();
+    // trouser crease
+    ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(-1,0,2,35);
+    // shoe
+    sh(4,'rgba(0,0,0,0.15)');
+    ctx.fillStyle=p.so; rrect(-7,33,15,8,[2,2,4,4]); ctx.fill(); nsh();
+    ctx.restore();
+  });
+
+  // ── Body ──
+  // Shirt body
+  ctx.fillStyle=p.sh;
+  rrect(-17,8,34,42,[13,13,6,6]); ctx.fill();
+  // Subtle shirt highlight
+  const shg=ctx.createLinearGradient(-17,8,17,8);
+  shg.addColorStop(0,'rgba(255,255,255,0.14)'); shg.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=shg; rrect(-17,8,34,42,[13,13,6,6]); ctx.fill();
+
+  // ── Arms ──
+  [[-17,14,lAm,-1],[17,14,rAm,1]].forEach(([ax,ay,ang,side])=>{
+    ctx.save(); ctx.translate(ax,ay); ctx.rotate(ang*Math.PI/180);
+    ctx.fillStyle=p.sh;
+    rrect(side<0?-10:0,0,10,30,[4,4,6,6]); ctx.fill();
+    ctx.fillStyle=p.sk; circ(side<0?-5:5,32,5.5); ctx.fill();
+    ctx.restore();
+  });
+
+  // ── Head ──
+  sh(8,'rgba(0,0,0,0.12)');
+  ctx.fillStyle=p.sk; circ(0,-9,18); ctx.fill(); nsh();
+  // Subtle jaw/chin shadow
+  const jaw=ctx.createRadialGradient(0,-2,10,0,-2,18);
+  jaw.addColorStop(0,'rgba(0,0,0,0)'); jaw.addColorStop(1,'rgba(0,0,0,0.06)');
+  ctx.fillStyle=jaw; circ(0,-9,18); ctx.fill();
+
+  // Hair
+  ctx.fillStyle=p.hr;
+  ctx.beginPath();
+  ctx.arc(0,-9,18,Math.PI,0);
+  ctx.lineTo(16,-18); ctx.arc(0,-24,13,0,Math.PI,true);
+  ctx.closePath(); ctx.fill();
+  // hair highlight
+  ctx.fillStyle='rgba(255,255,255,0.1)';
+  ctx.beginPath(); ctx.arc(0,-20,10,Math.PI+.5,0-.5); ctx.fill();
+
+  // Eyes — slightly larger, more detail
+  ctx.fillStyle='#FFFFFF'; circ(6.5,-11,4); ctx.fill(); circ(-6.5,-11,4); ctx.fill();
+  ctx.fillStyle='#2C1A10'; circ(7,-11,2.6); ctx.fill(); circ(-6,-11,2.6); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.7)'; circ(7.8,-12,1.1); ctx.fill(); circ(-5.2,-12,1.1); ctx.fill();
+
+  // Smile
+  ctx.strokeStyle='rgba(160,90,60,0.7)'; ctx.lineWidth=1.6; ctx.lineCap='round';
+  ctx.beginPath(); ctx.arc(0,-4.5,5.5,.25,Math.PI-.25); ctx.stroke();
+
+  ctx.restore();
+}
+
+// ── Checkout counter ─────────────────────────────────────
+function drawCheckout(){
+  // Checkout zone ambient glow — warm blue tint on wall/floor behind POS
+  const czg=ctx.createRadialGradient(1100,280,0,1100,280,340);
+  czg.addColorStop(0,'rgba(180,220,255,0.14)');
+  czg.addColorStop(1,'rgba(180,220,255,0)');
+  ctx.fillStyle=czg; ctx.fillRect(740,130,460,400);
+
+  // Back wall section behind counter — slightly tinted
+  ctx.fillStyle='rgba(0,0,0,0.05)'; ctx.fillRect(750,220,425,55);
+
+  // Counter body (side)
+  const cfg=ctx.createLinearGradient(750,295,750,390);
+  cfg.addColorStop(0,C.ctrA); cfg.addColorStop(1,C.ctrDk);
+  sh(10,'rgba(0,0,0,0.18)');
+  rrect(750,295,430,88,[10,10,0,0]); ctx.fillStyle=cfg; ctx.fill(); nsh();
+  // Counter top surface
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  rrect(750,295,430,8,[10,10,0,0]); ctx.fill();
+  // Counter front edge shadow
+  ctx.fillStyle='rgba(0,0,0,0.09)'; ctx.fillRect(750,379,430,5);
+
+  // ── Conveyor belt — richer, more prominent ──
+  sh(10,'rgba(30,60,80,0.35)');
+  const bg=ctx.createLinearGradient(760,303,760,348);
+  bg.addColorStop(0,C.beltLt); bg.addColorStop(0.5,'#4E7080'); bg.addColorStop(1,C.belt);
+  ctx.fillStyle=bg; rrect(760,303,280,42,8); ctx.fill(); nsh();
+  // Belt lane stripes — slightly more visible
+  ctx.save();
+  ctx.beginPath(); ctx.rect(760,303,280,42); ctx.clip();
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=2;
+  for(let i=0;i<16;i++){
+    const lx=760+(i*22+beltOff)%280;
+    ctx.beginPath(); ctx.moveTo(lx,303); ctx.lineTo(lx,345); ctx.stroke();
+  }
+  ctx.restore();
+  // Belt surface sheen
+  const bsh2=ctx.createLinearGradient(0,303,0,328);
+  bsh2.addColorStop(0,'rgba(255,255,255,0.18)'); bsh2.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=bsh2; rrect(760,303,280,25,8); ctx.fill();
+
+  // Belt end rollers
+  sh(5,'rgba(0,0,0,0.2)');
+  ctx.fillStyle=C.belt; circ(770,324,12); ctx.fill(); circ(1032,324,12); ctx.fill(); nsh();
+  ctx.fillStyle=C.beltLt; circ(770,324,7); ctx.fill(); circ(1032,324,7); ctx.fill();
+  ctx.fillStyle=C.belt; circ(770,324,3); ctx.fill(); circ(1032,324,3); ctx.fill();
+
+  // ── Customer-facing price display pole ──
+  ctx.fillStyle='#A0A8B0'; ctx.fillRect(1044,238,7,90);
+  ctx.fillStyle='#8A9099'; rrect(1040,232,15,10,3); ctx.fill();
+  sh(8,'rgba(0,0,0,0.2)');
+  rrect(1044,238,60,42,5); ctx.fillStyle='#1C2B3A'; ctx.fill(); nsh();
+  // Customer screen
+  rrect(1048,242,52,34,3);
+  const csg=ctx.createLinearGradient(1048,242,1048,276);
+  csg.addColorStop(0,'#0D1B2E'); csg.addColorStop(1,'#0A1322');
+  ctx.fillStyle=csg; ctx.fill();
+  ctx.fillStyle='rgba(90,160,240,0.25)';
+  rrect(1048,242,52,34,3); ctx.fill();
+  ctx.fillStyle='#6AA8E8';
+  ctx.font='9px monospace'; ctx.textAlign='center';
+  ctx.fillText('YOUR TOTAL',1074,255);
+  ctx.fillStyle='#FFFFFF';
+  ctx.font='bold 13px monospace';
+  ctx.fillText('€'+regTotal.toFixed(2),1074,271);
+
+  // Divider pole/separator
+  ctx.fillStyle='#B0BEC5'; ctx.fillRect(1042,240,8,95);
+  rrect(1037,237,18,11,3); ctx.fillStyle='#CFD8DC'; ctx.fill();
+
+  // ── Register / POS terminal ──
+  sh(18,'rgba(0,0,0,0.32)');
+  rrect(1108,215,88,96,8); ctx.fillStyle=C.regBg; ctx.fill(); nsh();
+  // Terminal body highlight edge
+  ctx.fillStyle='rgba(255,255,255,0.07)'; rrect(1108,215,88,6,[8,8,0,0]); ctx.fill();
+
+  // Main register screen — stronger blue glow
+  sh(24,'rgba(21,101,192,0.55)');
+  const rsg=ctx.createLinearGradient(1114,222,1114,276);
+  rsg.addColorStop(0,'#1255B0'); rsg.addColorStop(1,'#0A1929');
+  ctx.fillStyle=rsg; rrect(1114,222,76,58,5); ctx.fill(); nsh();
+  // Screen scan-line overlay
+  ctx.fillStyle='rgba(255,255,255,0.025)';
+  for(let sy=222;sy<280;sy+=4){ ctx.fillRect(1114,sy,76,2); }
+  // Screen content
+  ctx.fillStyle='rgba(100,170,240,0.6)';
+  ctx.font='9px monospace'; ctx.textAlign='center';
+  ctx.fillText(regLabel,1152,237);
+  ctx.fillStyle='#FFFFFF'; ctx.font='bold 14px monospace';
+  ctx.fillText('€'+regTotal.toFixed(2),1152,256);
+  ctx.fillStyle='rgba(90,200,130,0.8)'; ctx.font='9px monospace';
+  ctx.fillText('3 items',1152,270);
+
+  // Keypad
+  ctx.fillStyle='#253040'; rrect(1114,285,76,22,4); ctx.fill();
+  // Keys
+  [[1118,289,8,14],[1130,289,8,14],[1142,289,8,14]].forEach(([kx,ky,kw,kh])=>{
+    ctx.fillStyle='#374860'; rrect(kx,ky,kw,kh,2); ctx.fill();
+  });
+  ctx.fillStyle='#2E7D32'; rrect(1154,289,32,14,2); ctx.fill();
+  ctx.fillStyle='#FFFFFF'; ctx.font='bold 8px system-ui'; ctx.textAlign='center';
+  ctx.fillText('PAY',1170,299);
+
+  // Card payment reader (small, beside register)
+  ctx.fillStyle='#242F3D'; rrect(1115,243,18,18,3); ctx.fill();
+  ctx.fillStyle='rgba(80,140,220,0.5)'; rrect(1117,250,14,6,1); ctx.fill();
+}
+
+// ── Scanned products on belt ─────────────────────────────
+// Drawn as clean product shapes (no emoji dependency)
+function drawProduct(x,y,type){
+  ctx.save(); ctx.translate(x,y);
+  if(type===0){
+    // Vegetable pack — green rounded box
+    ctx.fillStyle='#4CAF50'; rrect(-13,-16,26,28,4); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.fillRect(-11,-14,22,10);
+    ctx.fillStyle='#2E7D32'; ctx.font='bold 8px system-ui'; ctx.textAlign='center';
+    ctx.fillText('VEG',0,2);
+  } else if(type===1){
+    // Can — cylinder look
+    ctx.fillStyle='#E65100'; rrect(-11,-14,22,28,3); ctx.fill();
+    const cg2=ctx.createLinearGradient(-11,-14,11,-14);
+    cg2.addColorStop(0,'rgba(255,255,255,0.2)'); cg2.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=cg2; rrect(-11,-14,22,28,3); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fillRect(-11,-2,22,8);
+    ctx.fillStyle='#BF360C'; ctx.font='bold 7px system-ui'; ctx.textAlign='center';
+    ctx.fillText('CAN',0,5);
+  } else {
+    // Milk carton — white tall box
+    ctx.fillStyle='#F5F5F5'; rrect(-10,-18,20,32,2); ctx.fill();
+    ctx.fillStyle='#1565C0'; rrect(-10,-18,20,10,2); ctx.fill();
+    ctx.strokeStyle='#E0E0E0'; ctx.lineWidth=.5;
+    ctx.beginPath(); ctx.moveTo(-10,-8); ctx.lineTo(10,-8); ctx.stroke();
+    ctx.fillStyle='#1A237E'; ctx.font='bold 7px system-ui'; ctx.textAlign='center';
+    ctx.fillText('MILK',0,4);
+  }
+  ctx.restore();
+}
+
+function drawConveyorItems(scanProg){
+  if(scanProg<=0) return;
+  [0,1,2].forEach(i=>{
+    const d=i*.26;
+    const p=ease.out3(norm(scanProg,d,d+.52));
+    if(p<=0) return;
+    const ix=lerp(878,1022,p), iy=324;
+    ctx.globalAlpha=Math.min(p*5,1);
+    drawProduct(ix,iy,i);
+    ctx.globalAlpha=1;
+  });
+}
+
+// ── Scanner beam ─────────────────────────────────────────
+function drawScannerBeam(scanProg){
+  if(scanProg<=0||scanProg>=.94) return;
+  const pulse=Math.sin(scanProg*Math.PI*9)*.5+.5;
+  const bAlpha=pulse*.75;
+
+  // Scanner head housing — more visible
+  ctx.fillStyle=`rgba(40,100,220,${bAlpha*.55})`; ctx.fillRect(1037,298,7,50);
+  ctx.fillStyle=`rgba(80,160,255,${bAlpha*.3})`; ctx.fillRect(1034,296,13,54);
+
+  // Laser sweep line — brighter, wider
+  const sweepY=318+Math.sin(scanProg*Math.PI*6)*12;
+  const lg=ctx.createLinearGradient(760,sweepY,1040,sweepY);
+  lg.addColorStop(0,'rgba(255,50,50,0)');
+  lg.addColorStop(.5,`rgba(255,60,60,${bAlpha*.7})`);
+  lg.addColorStop(.85,`rgba(255,40,40,${bAlpha*.9})`);
+  lg.addColorStop(1,`rgba(255,40,40,${bAlpha})`);
+  ctx.fillStyle=lg; ctx.fillRect(760,sweepY-2,280,4);
+  // secondary glow line
+  ctx.fillStyle=`rgba(255,100,100,${bAlpha*.25})`; ctx.fillRect(760,sweepY-5,280,10);
+
+  // Belt flash on beep
+  if(scanFlash>0){
+    ctx.fillStyle=`rgba(255,210,210,${scanFlash*.3})`;
+    ctx.fillRect(760,298,282,52);
+    scanFlash=Math.max(0,scanFlash-.07);
+  }
+  if(pulse>.88) scanFlash=1;
+}
+
+// ── Spotlight / identification ───────────────────────────
+// A soft cone of light from the ceiling lamp above the shopper
+function drawSpotlight(x,y,alpha){
+  if(alpha<=0) return;
+  ctx.save();
+  // Cone of light
+  const conW=110, lampY=22;
+  ctx.beginPath();
+  ctx.moveTo(x-4,lampY);
+  ctx.lineTo(x+4,lampY);
+  ctx.lineTo(x+conW/2,y+20);
+  ctx.lineTo(x-conW/2,y+20);
+  ctx.closePath();
+  const cg=ctx.createLinearGradient(0,lampY,0,y+20);
+  cg.addColorStop(0,`rgba(220,255,220,${alpha*.22})`);
+  cg.addColorStop(1,`rgba(220,255,220,0)`);
+  ctx.fillStyle=cg; ctx.fill();
+
+  // Soft halo around character
+  const hr=ctx.createRadialGradient(x,y-20,10,x,y-20,75);
+  hr.addColorStop(0,`rgba(80,200,100,${alpha*.18})`);
+  hr.addColorStop(1,`rgba(80,200,100,0)`);
+  ctx.fillStyle=hr; circ(x,y-20,75); ctx.fill();
+
+  // Thin clean ring — not dashed, just a soft circle outline
+  const ringPulse=.75+Math.sin(Date.now()/500)*.25;
+  ctx.strokeStyle=`rgba(60,180,90,${alpha*ringPulse*.45})`;
+  ctx.lineWidth=2; ctx.setLineDash([]);
+  circ(x,y-30,64); ctx.stroke();
+
+  ctx.restore();
+}
+
+// ── AI identification badge ──────────────────────────────
+function drawAiBadge(x,y,alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  const bw=170, bh=28, bx=x-bw/2, by=y-108;
+  sh(10,'rgba(0,0,0,0.18)');
+  rrect(bx,by,bw,bh,5); ctx.fillStyle=C.gbDk; ctx.fill(); nsh();
+  // notch pointer
+  ctx.fillStyle=C.gbDk;
+  ctx.beginPath();
+  ctx.moveTo(x-6,by+bh); ctx.lineTo(x,by+bh+7); ctx.lineTo(x+6,by+bh); ctx.fill();
+  // pulsing dot
+  const dp=.7+Math.sin(Date.now()/300)*.3;
+  ctx.fillStyle=`rgba(100,220,120,${dp})`;
+  circ(bx+14,by+bh/2,4); ctx.fill();
+  ctx.fillStyle='#FFFFFF';
+  ctx.font='bold 12px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('SMART SHOPPER DETECTED',x+8,by+bh/2+4.5);
+  ctx.restore();
+}
+
+// ── Reward popup ─────────────────────────────────────────
+// Slides up cleanly — no elastic bounce
+function drawRewardPopup(p,ts){
+  if(p<=0) return;
+  const PW=400, PH=268;
+  const PX=(W-PW)/2, PY=(H-PH)/2-24;
+
+  // Entrance: slide up + fade in
+  const enterP=ease.out3(clamp(p*2.5,0,1));
+  const slideOff=lerp(28,0,enterP);
+  const fa=p>.92?(1-p)/.08:Math.min(p*6,1);
+
+  ctx.save();
+
+  // Backdrop dim
+  ctx.globalAlpha=fa*.55;
+  ctx.fillStyle='#0A1520';
+  ctx.fillRect(0,0,W,H);
+
+  // Subtle radial glow behind card
+  const glow=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,300);
+  glow.addColorStop(0,`rgba(46,125,50,${fa*.18})`);
+  glow.addColorStop(1,`rgba(46,125,50,0)`);
+  ctx.fillStyle=glow; ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=fa;
+
+  // Draw card at translated position
+  ctx.translate(PX+PW/2, PY+PH/2+slideOff);
+  ctx.translate(-PW/2, -PH/2);
+
+  // Card shadow
+  sh(32,'rgba(0,0,0,0.3)');
+  rrect(0,0,PW,PH,16); ctx.fillStyle='#FFFFFF'; ctx.fill(); nsh();
+
+  // Header band
+  const hg=ctx.createLinearGradient(0,0,PW,0);
+  hg.addColorStop(0,C.gbDk); hg.addColorStop(1,C.gbMd);
+  ctx.fillStyle=hg; rrect(0,0,PW,80,[16,16,0,0]); ctx.fill();
+
+  // Leaf icon (drawn)
+  ctx.save(); ctx.translate(38,40); ctx.scale(1.6,1.6);
+  ctx.fillStyle='rgba(255,255,255,0.85)';
+  ctx.beginPath();
+  ctx.moveTo(0,-12); ctx.bezierCurveTo(10,-10,13,0,0,13);
+  ctx.bezierCurveTo(-13,0,-10,-10,0,-12); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.15)'; ctx.lineWidth=.6;
+  ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(0,13); ctx.stroke();
+  ctx.restore();
+
+  // Header text
+  ctx.fillStyle='#FFFFFF';
+  ctx.font='bold 18px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign='left';
+  ctx.fillText('GreenBasket',62,30);
+  ctx.fillStyle=C.gbPl;
+  ctx.font='12px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText('Reward unlocked at checkout',62,52);
+  // Verified checkmark
+  ctx.fillStyle='rgba(255,255,255,0.2)';
+  circ(PW-28,26,14); ctx.fill();
+  ctx.strokeStyle='#FFFFFF'; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.moveTo(PW-35,26); ctx.lineTo(PW-28,33); ctx.lineTo(PW-18,18); ctx.stroke();
+
+  // Points value — counts up
+  const displayPts=Math.round(lerp(0,200,ease.out3(norm(p,.12,.6))));
+  ctx.textAlign='center';
+  ctx.fillStyle=C.gbBr;
+  ctx.font=`bold 62px "Segoe UI",system-ui,sans-serif`;
+  ctx.fillText('+'+displayPts,PW/2,164);
+  ctx.fillStyle=C.gbMd;
+  ctx.font='bold 15px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText('GREENBASKET POINTS',PW/2,187);
+
+  // Divider
+  ctx.fillStyle='#EEF7EE'; ctx.fillRect(24,198,PW-48,1);
+
+  // Health bar (fills after points appear)
+  const barEnter=ease.outQ(norm(p,.38,.82));
+  const barFill=barEnter*.84; // 84% health score
+  const barX=30, barY=214, barW=PW-60, barH=8;
+  ctx.fillStyle='#E8F5E9'; rrect(barX,barY,barW,barH,4); ctx.fill();
+  if(barFill>0){
+    const bfg=ctx.createLinearGradient(barX,0,barX+barW,0);
+    bfg.addColorStop(0,C.gbLt); bfg.addColorStop(1,C.gold);
+    ctx.fillStyle=bfg; rrect(barX,barY,barW*barFill,barH,4); ctx.fill();
+  }
+  ctx.fillStyle=C.gbMd; ctx.font='11px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign='left'; ctx.fillText('Basket health score',barX,barY-4);
+  ctx.textAlign='right'; ctx.fillText('84 / 100',barX+barW,barY-4);
+
+  // Sub-caption
+  ctx.fillStyle='#78909C';
+  ctx.font='11px "Segoe UI",system-ui,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Healthy basket bonus applied  ·  Gold tier 2× multiplier',PW/2,248);
+
+  ctx.restore();
+}
+
+// ── Payment confirmation card ─────────────────────────────
+function drawPaymentConfirm(p){
+  if(p<=0) return;
+  const RW=214, RH=148, RX=812, RY=200;
+  const enterP=ease.out3(clamp(p*2.2,0,1));
+  const slide=lerp(20,0,enterP);
+  ctx.save();
+  ctx.globalAlpha=Math.min(p*4,1);
+  ctx.translate(0,slide);
+
+  sh(24,'rgba(0,0,0,0.22)');
+  ctx.fillStyle='#FFFFFF'; rrect(RX,RY,RW,RH,12); ctx.fill(); nsh();
+  // Zigzag receipt tear
+  ctx.beginPath(); ctx.moveTo(RX,RY+RH);
+  for(let i=0;i<=RW;i+=10)
+    ctx.lineTo(RX+i, RY+RH+(i/10%2===0?0:7));
+  ctx.lineTo(RX+RW,RY+RH); ctx.fillStyle='#FFFFFF'; ctx.fill();
+
+  // Green header strip
+  ctx.fillStyle=C.gbBr; rrect(RX,RY,RW,12,[12,12,0,0]); ctx.fill();
+
+  // Checkmark — draws in proportionally to progress
+  const ckP=ease.outBk(clamp((p-.08)/.55,0,1));
+  ctx.save(); ctx.translate(RX+RW/2,RY+50); ctx.scale(ckP,ckP);
+  ctx.fillStyle='#E8F5E9'; circ(0,0,26); ctx.fill();
+  ctx.strokeStyle=C.gbBr; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.arc(0,0,26,0,Math.PI*2); ctx.stroke();
+  ctx.strokeStyle=C.gbBr; ctx.lineWidth=3.5;
+  ctx.beginPath(); ctx.moveTo(-11,0); ctx.lineTo(-3,10); ctx.lineTo(14,-10); ctx.stroke();
+  ctx.restore();
+
+  const ta=clamp((p-.22)*3,0,1);
+  ctx.globalAlpha=ta;
+  ctx.fillStyle='#1C2A38';
+  ctx.font='bold 14px "Segoe UI",system-ui,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('PAYMENT APPROVED',RX+RW/2,RY+90);
+  ctx.fillStyle='#78909C'; ctx.font='11px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText('Transaction complete',RX+RW/2,RY+108);
+  ctx.fillStyle=C.gbMd;
+  ctx.fillText('200 pts added to your account',RX+RW/2,RY+124);
+  ctx.restore();
+}
+
+// ── Checkout price breakdown card ───────────────────────
+// Appears above the counter during phase 4:
+//   step 1 (p 0.00–0.18) subtotal
+//   step 2 (p 0.35–0.52) GreenBasket discount line
+//   step 3 (p 0.62–0.80) final total
+function drawCheckoutBreakdown(p){
+  const CW=298, CH=162, CX=812, CY=126;
+
+  // Card fades in quickly, fades out in last 10% before reward popup
+  const fa = p>.88 ? ease.in3((1-p)/.12) : ease.out3(Math.min(p*6,1));
+  if(fa<=0) return;
+
+  ctx.save(); ctx.globalAlpha=fa;
+
+  // Card background
+  sh(20,'rgba(0,0,0,0.3)');
+  rrect(CX,CY,CW,CH,10);
+  const cbg=ctx.createLinearGradient(CX,CY,CX,CY+CH);
+  cbg.addColorStop(0,'#1E2E42'); cbg.addColorStop(1,'#131F2E');
+  ctx.fillStyle=cbg; ctx.fill(); nsh();
+
+  // Top accent stripe (GreenBasket green)
+  const cag=ctx.createLinearGradient(CX,CY,CX+CW,CY);
+  cag.addColorStop(0,C.gbDk); cag.addColorStop(1,C.gbMd);
+  ctx.fillStyle=cag; rrect(CX,CY,CW,7,[10,10,0,0]); ctx.fill();
+
+  // Card title
+  ctx.fillStyle='rgba(144,184,224,0.55)';
+  ctx.font='bold 9px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign='left'; ctx.letterSpacing='1.5px';
+  ctx.fillText('CHECKOUT SUMMARY',CX+14,CY+24);
+  ctx.letterSpacing='0px';
+
+  // Divider below title
+  ctx.fillStyle='rgba(255,255,255,0.07)'; ctx.fillRect(CX+14,CY+30,CW-28,1);
+
+  const ROW = (label, value, rowY, alpha, col, bold) => {
+    ctx.globalAlpha = fa * Math.max(0,alpha);
+    ctx.font = (bold?'bold ':'')+`${bold?15:13}px "Segoe UI",system-ui,sans-serif`;
+    ctx.fillStyle = col;
+    ctx.textAlign='left';  ctx.fillText(label, CX+14, rowY);
+    ctx.textAlign='right'; ctx.fillText(value, CX+CW-14, rowY);
+  };
+
+  // Row 1 — Subtotal (appears immediately)
+  const a1 = ease.out3(norm(p,0.00,0.18));
+  ROW('Subtotal','€49.35', CY+56, a1, '#D0DCE8', false);
+
+  // Row 2 — GreenBasket reward (appears after a clear pause)
+  const a2 = ease.out3(norm(p,0.35,0.52));
+  // Green badge pip before the label
+  if(a2>0){
+    ctx.globalAlpha = fa * a2;
+    ctx.fillStyle = C.gbLt;
+    circ(CX+10, CY+77, 3.5); ctx.fill();
+  }
+  ROW('GreenBasket reward applied','−€2.00', CY+81, a2, C.gbLt, false);
+
+  // Thin divider above total
+  const a3 = ease.out3(norm(p,0.62,0.80));
+  ctx.globalAlpha = fa * ease.out3(norm(p,0.58,0.70));
+  ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(CX+14,CY+92,CW-28,1);
+
+  // Row 3 — Final total (bold, white, larger)
+  ROW('Total','€47.35', CY+114, a3, '#FFFFFF', true);
+
+  // Savings note below total
+  const a4 = ease.out3(norm(p,0.75,0.92));
+  ctx.globalAlpha = fa * a4;
+  ctx.fillStyle = C.gbPl;
+  ctx.font='11px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('You saved €2.00 with your GreenBasket membership',CX+CW/2,CY+140);
+
+  ctx.restore();
+}
+
+// ── Vignette overlay (cinematic polish) ─────────────────
+function drawVignette(){
+  const vg=ctx.createRadialGradient(W/2,H/2,H*.4,W/2,H/2,H*.9);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(1,'rgba(0,0,0,0.28)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+}
+
+// ── Main loop ────────────────────────────────────────────
+function draw(ts){
+  if(!T0) T0=ts;
+  const totalT=(ts-T0)/1000;
+  const tt=totalT%LOOP;
+
+  // Reset on loop boundary
+  if(prevPhase===7 && tt<.12){
+    particles=[]; ptFired=false; regTotal=0; beltOff=0; scanFlash=0; regLabel='TOTAL';
+  }
+
+  const {phase,p}=getPhase(totalT);
+
+  // Belt scrolls from phase 2 onward
+  if(phase>=2) beltOff=(beltOff+1.4)%22;
+
+  // Walk cycles
+  if(phase===2) walkMain=(walkMain+.026)%1;
+  walkBg1=(walkBg1+.013)%1;
+  walkBg2=(walkBg2+.016)%1;
+
+  // Register total: ticks to subtotal during scan, then steps to final during breakdown
+  if(phase===3){ regTotal=lerp(0,49.35,ease.out3(p)); regLabel='TOTAL'; }
+  else if(phase===4){
+    // Subtotal until step 3, then jump to final total
+    regTotal = p>0.62 ? 47.35 : 49.35;
+    regLabel = p>0.62 ? 'TOTAL' : 'SUBTOTAL';
+  }
+  else if(phase>=5){ regTotal=47.35; regLabel='TOTAL'; }
+
+  // Shopper X position — eased walk with gentle deceleration at arrival
+  const sX0=508, sX1=865, sY=432;
+  let sX=sX0;
+  if(phase===2) sX=lerp(sX0,sX1,ease.io(p));
+  else if(phase>=3) sX=sX1;
+
+  // Cart has slight lag behind shopper for organic feel
+  const cX=phase===2 ? lerp(sX0+52,sX1+52,ease.io(Math.max(0,p-.04))) : sX+(phase>=3?52:52);
+
+  // Spawn particles at reward moment
+  if(phase===5 && p>.15 && !ptFired){
+    spawnConfetti(W/2,H/2-18,24); ptFired=true;
+  }
+  updateParticles();
+
+  // Global fade
+  let ga=1;
+  if(phase===0) ga=ease.sin(Math.min(p*1.6,1));
+  if(phase===7) ga=1-ease.in3(p);
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0A1520'; ctx.fillRect(0,0,W,H);
+  ctx.save(); ctx.globalAlpha=ga;
+
+  drawBackground();
+  drawShelves();
+
+  // Bg shopper 1 near shelves — browsing (very slow walk, near shelf end)
+  drawPerson(300,452,'bg1',walkBg1,false,.62);
+
+  // Bg shopper 2 further away, partially behind main area
+  drawCart(448,396,.88,.58);
+  drawPerson(416,438,'bg2',walkBg2,true,.58);
+
+  drawCheckout();
+  drawPerson(1098,448,'cashier',0,false,1);
+
+  // Scanning phase: items on belt + beam
+  if(phase>=3){
+    drawConveyorItems(phase===3?p:1);
+    drawScannerBeam(phase===3?p:0);
+  }
+
+  // Main shopper — spotlight during identify phase
+  if(phase===1) drawSpotlight(sX,sY-40,ease.sin(p));
+  if(phase===2) drawSpotlight(sX,sY-40,(1-p)*.4);
+
+  // Cart drawn before shopper so shopper overlaps naturally
+  drawCart(cX,sY-30,1.0);
+
+  // AI badge (identification phase)
+  if(phase===1){
+    const ba=ease.out3(Math.min(p*3,1));
+    drawAiBadge(sX,sY,ba);
+  }
+
+  // Main shopper
+  const mw=phase===2?walkMain:0;
+  drawPerson(sX,sY,'main',mw,false,1);
+
+  drawParticles();
+  drawVignette();
+
+  ctx.restore();
+
+  // Checkout breakdown card (phase 4 — before reward popup)
+  if(phase===4) drawCheckoutBreakdown(p);
+
+  // Overlay popups (independent alpha)
+  if(phase===5) drawRewardPopup(p,ts);
+  if(phase===6) drawPaymentConfirm(p);
+
+  // Fade out overlay
+  if(phase===7){
+    ctx.fillStyle=`rgba(10,21,32,${ease.in3(p)})`;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  prevPhase=phase;
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

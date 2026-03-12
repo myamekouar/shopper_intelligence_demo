@@ -1,0 +1,7 @@
+segment,n_shoppers,avg_observed_spend,median_observed_spend,avg_basket_value,avg_basket_size,avg_frequency_pm,pct_ecommerce,pct_offer_users,avg_redemption_rate,avg_nutri_score,avg_eco_score,avg_nova_group,pct_healthy,pct_sustainable,pct_ultra_processed,pct_with_external,avg_healthy_streak,pct_reward_eligible,pct_of_base
+Digital-First Shoppers,5127,551.765,319.47,101.408,33.721,2.412,0.815,0.283,0.058,2.101,4.062,3.678,0.028,0.209,0.804,0.032,0.0,0.533,0.01398160874402775
+Green High-Spenders,4220,1000.563,797.525,77.476,22.668,5.63,0.019,0.411,0.061,4.484,4.829,2.476,0.972,0.476,0.306,1.0,0.001,0.86,0.011508170255470471
+Low-Engagement Occasionals,155067,49.942,37.73,23.616,7.406,1.487,0.0,0.293,0.007,1.846,3.869,3.997,0.003,0.154,0.997,0.006,0.0,0.133,0.4228761699064075
+Mainstream Regulars,4314,998.305,793.155,80.061,22.647,5.364,0.007,0.378,0.059,2.032,4.362,2.688,0.014,0.276,0.031,1.0,0.0,0.833,0.011764513384383795
+Offer-Responsive Shoppers,14685,878.007,532.81,72.323,19.836,4.607,0.009,1.0,0.802,2.01,4.094,3.957,0.018,0.228,0.971,0.038,0.0,1.0,0.0400467962562995
+Selective Buyers,183283,594.878,384.58,81.193,21.844,3.85,0.003,0.257,0.009,1.926,4.126,3.983,0.008,0.209,0.989,0.038,0.0,0.693,0.499822741453411

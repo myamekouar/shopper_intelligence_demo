@@ -1,0 +1,40 @@
+segment,activation_trigger,n_shoppers,primary_channel,secondary_channel,timing_rule,kpi
+Digital-First Shoppers,CHANNEL_MIGRATION_MISSION,4638,App Push Notification,Email,During preferred shopping hour — app onboarding push,Digital channel adoption; app engagement rate
+Digital-First Shoppers,REACTIVATION_MISSION,323,App Push Notification,Email,After 30-day inactivity — re-engagement sequence,Return rate; repeat purchase within 30 days
+Digital-First Shoppers,GREEN_BASKET_REWARD,75,App Push Notification,Email,Within 2h post-purchase — celebrate the green basket,Basket health improvement; sustainable product share
+Digital-First Shoppers,REDUCE_ULTRA_PROCESSED_MISSION,73,App Push Notification,Email,24h post-purchase — swap recommendation follow-up,Ultra-processed share reduction; NOVA score delta
+Digital-First Shoppers,ECO_AWARENESS_NUDGE,10,App Push Notification,Email,Bi-weekly periodic sustainability reminder,EcoScore uplift; sustainable basket rate
+Digital-First Shoppers,HEALTHY_SWAP_MISSION,8,App Push Notification,Email,48h before predicted next shop — pre-shop planning nudge,Healthy product share uplift; NutriScore delta
+Green High-Spenders,GREEN_BASKET_REWARD,2976,SMS,Loyalty App,Within 2h post-purchase — celebrate the green basket,Basket health improvement; sustainable product share
+Green High-Spenders,ECO_AWARENESS_NUDGE,848,SMS,Loyalty App,Bi-weekly periodic sustainability reminder,EcoScore uplift; sustainable basket rate
+Green High-Spenders,REDUCE_ULTRA_PROCESSED_MISSION,339,SMS,Loyalty App,24h post-purchase — swap recommendation follow-up,Ultra-processed share reduction; NOVA score delta
+Green High-Spenders,REACTIVATION_MISSION,57,In-Store Coupon,Loyalty App,After 30-day inactivity — re-engagement sequence,Return rate; repeat purchase within 30 days
+Low-Engagement Occasionals,REACTIVATION_MISSION,76298,In-Store Coupon,Loyalty App,After 30-day inactivity — re-engagement sequence,Return rate; repeat purchase within 30 days
+Low-Engagement Occasionals,STANDARD_ENGAGEMENT,36761,In-Store Coupon,Loyalty App,Next predicted purchase window (avg frequency basis),Basket value; category diversification index
+Low-Engagement Occasionals,OFFER_ENGAGEMENT_MISSION,34628,In-Store Coupon,Loyalty App,Weekly — aligned to promotion cycle (Mon/Tue launch),Redemption rate uplift; basket value change
+Low-Engagement Occasionals,LOYALTY_CHALLENGE,6481,In-Store Coupon,Loyalty App,Start of month — monthly challenge launch,Repeat purchase rate; tier upgrade rate
+Low-Engagement Occasionals,REDUCE_ULTRA_PROCESSED_MISSION,439,In-Store Coupon,Loyalty App,24h post-purchase — swap recommendation follow-up,Ultra-processed share reduction; NOVA score delta
+Low-Engagement Occasionals,GREEN_BASKET_REWARD,268,In-Store Coupon,Loyalty App,Within 2h post-purchase — celebrate the green basket,Basket health improvement; sustainable product share
+Low-Engagement Occasionals,CHANNEL_MIGRATION_MISSION,188,App Push Notification,Email,During preferred shopping hour — app onboarding push,Digital channel adoption; app engagement rate
+Low-Engagement Occasionals,ECO_AWARENESS_NUDGE,4,In-Store Coupon,Loyalty App,Bi-weekly periodic sustainability reminder,EcoScore uplift; sustainable basket rate
+Mainstream Regulars,GREEN_BASKET_REWARD,2119,SMS,Loyalty App,Within 2h post-purchase — celebrate the green basket,Basket health improvement; sustainable product share
+Mainstream Regulars,HEALTHY_SWAP_MISSION,1715,SMS,Loyalty App,48h before predicted next shop — pre-shop planning nudge,Healthy product share uplift; NutriScore delta
+Mainstream Regulars,ECO_AWARENESS_NUDGE,396,SMS,Loyalty App,Bi-weekly periodic sustainability reminder,EcoScore uplift; sustainable basket rate
+Mainstream Regulars,REACTIVATION_MISSION,84,In-Store Coupon,Loyalty App,After 30-day inactivity — re-engagement sequence,Return rate; repeat purchase within 30 days
+Offer-Responsive Shoppers,LOYALTY_CHALLENGE,6099,SMS,Loyalty App,Start of month — monthly challenge launch,Repeat purchase rate; tier upgrade rate
+Offer-Responsive Shoppers,OFFER_ENGAGEMENT_MISSION,5680,In-Store Coupon,Loyalty App,Weekly — aligned to promotion cycle (Mon/Tue launch),Redemption rate uplift; basket value change
+Offer-Responsive Shoppers,REACTIVATION_MISSION,1878,In-Store Coupon,Loyalty App,After 30-day inactivity — re-engagement sequence,Return rate; repeat purchase within 30 days
+Offer-Responsive Shoppers,CHANNEL_MIGRATION_MISSION,468,App Push Notification,Email,During preferred shopping hour — app onboarding push,Digital channel adoption; app engagement rate
+Offer-Responsive Shoppers,REDUCE_ULTRA_PROCESSED_MISSION,285,SMS,Loyalty App,24h post-purchase — swap recommendation follow-up,Ultra-processed share reduction; NOVA score delta
+Offer-Responsive Shoppers,GREEN_BASKET_REWARD,260,SMS,Loyalty App,Within 2h post-purchase — celebrate the green basket,Basket health improvement; sustainable product share
+Offer-Responsive Shoppers,HEALTHY_SWAP_MISSION,8,SMS,Loyalty App,48h before predicted next shop — pre-shop planning nudge,Healthy product share uplift; NutriScore delta
+Offer-Responsive Shoppers,ECO_AWARENESS_NUDGE,7,SMS,Loyalty App,Bi-weekly periodic sustainability reminder,EcoScore uplift; sustainable basket rate
+Selective Buyers,LOYALTY_CHALLENGE,66549,SMS,Loyalty App,Start of month — monthly challenge launch,Repeat purchase rate; tier upgrade rate
+Selective Buyers,OFFER_ENGAGEMENT_MISSION,55774,In-Store Coupon,Loyalty App,Weekly — aligned to promotion cycle (Mon/Tue launch),Redemption rate uplift; basket value change
+Selective Buyers,STANDARD_ENGAGEMENT,50074,In-Store Coupon,Loyalty App,Next predicted purchase window (avg frequency basis),Basket value; category diversification index
+Selective Buyers,REDUCE_ULTRA_PROCESSED_MISSION,3810,SMS,Loyalty App,24h post-purchase — swap recommendation follow-up,Ultra-processed share reduction; NOVA score delta
+Selective Buyers,GREEN_BASKET_REWARD,3054,SMS,Loyalty App,Within 2h post-purchase — celebrate the green basket,Basket health improvement; sustainable product share
+Selective Buyers,CHANNEL_MIGRATION_MISSION,2752,App Push Notification,Email,During preferred shopping hour — app onboarding push,Digital channel adoption; app engagement rate
+Selective Buyers,REACTIVATION_MISSION,1140,In-Store Coupon,Loyalty App,After 30-day inactivity — re-engagement sequence,Return rate; repeat purchase within 30 days
+Selective Buyers,HEALTHY_SWAP_MISSION,82,SMS,Loyalty App,48h before predicted next shop — pre-shop planning nudge,Healthy product share uplift; NutriScore delta
+Selective Buyers,ECO_AWARENESS_NUDGE,48,In-Store Coupon,Loyalty App,Bi-weekly periodic sustainability reminder,EcoScore uplift; sustainable basket rate

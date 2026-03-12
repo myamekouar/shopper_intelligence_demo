@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GreenBasket · Shopper Intelligence Demo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Arial,sans-serif;background:#EEF2F7;color:#333;min-height:100vh}
+
+/* ── Top bar ─────────────────────────────────────────────────────────── */
+#topbar{
+  background:linear-gradient(135deg,#003d80 0%,#004A97 60%,#0060bb 100%);
+  padding:14px 32px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 12px rgba(0,0,0,.25);position:sticky;top:0;z-index:100
+}
+#topbar-left{display:flex;align-items:center;gap:16px}
+#logo-box{
+  background:#CC0000;color:#fff;font-size:13px;font-weight:900;
+  padding:6px 12px;border-radius:6px;letter-spacing:.5px
+}
+#topbar-title{color:#fff;font-size:16px;font-weight:700;letter-spacing:.3px}
+#topbar-sub{color:#A8C8F0;font-size:11px;margin-top:1px}
+#selector-wrap{display:flex;align-items:center;gap:10px}
+#selector-label{color:#A8C8F0;font-size:12px;font-weight:600;white-space:nowrap}
+#shopper-dd{
+  background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.3);
+  border-radius:8px;padding:8px 14px;font-size:13px;font-family:inherit;cursor:pointer;
+  min-width:320px;outline:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M0 0l6 7 6-7z' fill='%23A8C8F0'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:32px
+}
+#shopper-dd option{background:#004A97;color:#fff}
+#shopper-dd:focus{border-color:rgba(255,255,255,.6)}
+
+/* ── Main container ───────────────────────────────────────────────────── */
+#main{max-width:1000px;margin:0 auto;padding:20px 16px 40px}
+
+/* ── Dashboard header card ────────────────────────────────────────────── */
+#profile-header{
+  background:linear-gradient(135deg,#004A97 0%,#0066CC 100%);
+  border-radius:14px;padding:24px 28px;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 4px 16px rgba(0,74,151,.35)
+}
+#ph-name{font-size:26px;font-weight:800;color:#fff;margin-bottom:8px}
+#ph-sub{font-size:10px;color:#A8C8F0;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px}
+#ph-badges{display:flex;gap:8px;flex-wrap:wrap}
+.ph-badge{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700}
+.ph-badge-seg{background:rgba(255,255,255,.15);color:#fff}
+.ph-badge-tier{color:#fff}
+#ph-right{text-align:right;color:#fff;flex-shrink:0;margin-left:20px}
+#ph-age-lbl{font-size:11px;color:#A8C8F0;margin-bottom:2px}
+#ph-age{font-size:20px;font-weight:700}
+
+/* ── KPI row ─────────────────────────────────────────────────────────── */
+#kpi-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px
+}
+.kpi-card{
+  background:#fff;border-radius:10px;padding:16px;text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.07)
+}
+.kpi-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.kpi-value{font-size:22px;font-weight:900}
+
+/* ── Two-col rows ─────────────────────────────────────────────────────── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+
+/* ── Generic card ─────────────────────────────────────────────────────── */
+.card{
+  background:#fff;border-radius:10px;padding:20px;
+  box-shadow:0 2px 8px rgba(0,0,0,.07)
+}
+.card-title{
+  font-size:12px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1.2px;margin-bottom:16px
+}
+
+/* ── Radar canvas ─────────────────────────────────────────────────────── */
+#radar-wrap{text-align:center}
+#radar-canvas{background:#F6F9FF;border-radius:10px}
+#radar-sub{font-size:11px;color:#aaa;margin-top:6px}
+
+/* ── Score badges (Nutri/Eco) ─────────────────────────────────────────── */
+#score-badges{display:flex;gap:10px;align-items:flex-start;margin-bottom:16px}
+.score-badge{
+  width:54px;height:54px;border-radius:10px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-size:22px;font-weight:900;
+  color:#fff;flex-shrink:0
+}
+.score-badge span{font-size:8px;font-weight:400;line-height:1}
+#score-meta{font-size:12px;color:#666;line-height:1.8}
+#score-meta strong{color:#333}
+
+/* ── Score bars ───────────────────────────────────────────────────────── */
+.sbar{margin:8px 0}
+.sbar-head{display:flex;justify-content:space-between;margin-bottom:3px;font-size:13px}
+.sbar-label{color:#555;font-weight:500}
+.sbar-val{font-weight:700}
+.sbar-track{background:#E8EAED;border-radius:6px;height:10px}
+.sbar-fill{border-radius:6px;height:10px;transition:width .4s ease}
+#streak-box{
+  margin-top:12px;background:#F8F9FA;border-radius:8px;
+  padding:10px;font-size:12px;color:#555
+}
+
+/* ── Rewards ─────────────────────────────────────────────────────────── */
+#prog-row{display:flex;justify-content:space-between;margin-bottom:6px}
+#prog-label{font-size:13px;color:#555;font-weight:500}
+#prog-pct{font-size:14px;font-weight:800;color:#004A97}
+#prog-track{background:#E8EAED;border-radius:8px;height:13px;overflow:hidden;margin-bottom:4px}
+#prog-fill{height:13px;border-radius:8px;background:linear-gradient(90deg,#004A97,#0066CC);transition:width .4s ease}
+#prog-sub{display:flex;justify-content:space-between;font-size:11px;color:#999;margin-bottom:14px}
+#badges-label{font-size:12px;color:#555;font-weight:600;margin-bottom:6px}
+#badges-wrap{margin-bottom:12px}
+.earned-badge{
+  background:#E8F1FB;color:#004A97;padding:4px 12px;border-radius:20px;
+  font-size:12px;font-weight:600;margin:2px 3px;display:inline-block;
+  border:1px solid #B3D1F0
+}
+#mission-box{
+  background:linear-gradient(135deg,#E8F1FB,#F0F7FF);
+  border:1px solid #B3D1F0;border-radius:8px;padding:12px
+}
+#mission-title{font-size:12px;color:#004A97;font-weight:700;margin-bottom:4px}
+#mission-text{font-size:13px;color:#333}
+
+/* ── Activation ─────────────────────────────────────────────────────── */
+#act-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.act-cell{background:#FFF5F5;border-radius:8px;padding:10px;border-left:3px solid #CC0000}
+.act-cell-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px}
+.act-cell-val{font-size:14px;font-weight:700;color:#CC0000;margin-top:3px}
+#offer-box{
+  background:#FFF5F5;border-radius:8px;padding:10px;
+  border-left:3px solid #CC0000;margin-bottom:10px
+}
+#offer-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+#offer-val{font-size:14px;font-weight:700}
+#why-box{background:#F8F9FA;border-radius:8px;padding:12px;font-size:12px;color:#555;line-height:1.6}
+
+/* ── Impact ─────────────────────────────────────────────────────────── */
+#impact-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.imp-card{
+  text-align:center;background:#F1F8F2;border-radius:10px;
+  padding:14px;border-bottom:3px solid
+}
+.imp-val{font-size:26px;font-weight:900}
+.imp-label{font-size:11px;color:#555;margin-top:4px}
+
+/* ── Footer ──────────────────────────────────────────────────────────── */
+#footer{text-align:center;font-size:11px;color:#bbb;padding:10px 0 0}
+
+/* ── Transitions ─────────────────────────────────────────────────────── */
+#dashboard{opacity:1;transition:opacity .15s ease}
+#dashboard.fade{opacity:0}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div id="topbar-left">
+    <div id="logo-box">Catalina</div>
+    <div>
+      <div id="topbar-title">GreenBasket · Shopper Intelligence Demo</div>
+      <div id="topbar-sub">Omnichannel Activation & Gamification Platform</div>
+    </div>
+  </div>
+  <div id="selector-wrap">
+    <div id="selector-label">👤 Select Shopper</div>
+    <select id="shopper-dd"></select>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD -->
+<div id="main">
+  <div id="dashboard">
+
+    <!-- HEADER -->
+    <div id="profile-header">
+      <div>
+        <div id="ph-sub">Catalina · Shopper Intelligence</div>
+        <div id="ph-name">—</div>
+        <div id="ph-badges">
+          <span id="ph-persona" class="ph-badge"></span>
+          <span id="ph-seg"     class="ph-badge ph-badge-seg"></span>
+          <span id="ph-tier"    class="ph-badge ph-badge-tier"></span>
+        </div>
+      </div>
+      <div id="ph-right">
+        <div id="ph-age-lbl">Age Group</div>
+        <div id="ph-age">—</div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div id="kpi-row">
+      <div class="kpi-card" style="border-top:4px solid #004A97">
+        <div class="kpi-label">Annual Spend</div>
+        <div class="kpi-value" style="color:#004A97" id="kpi-spend">—</div>
+      </div>
+      <div class="kpi-card" style="border-top:4px solid #CC0000">
+        <div class="kpi-label">Avg Basket</div>
+        <div class="kpi-value" style="color:#CC0000" id="kpi-basket">—</div>
+      </div>
+      <div class="kpi-card" style="border-top:4px solid #2E7D32">
+        <div class="kpi-label">Visits / Month</div>
+        <div class="kpi-value" style="color:#2E7D32" id="kpi-visits">—</div>
+      </div>
+      <div class="kpi-card" style="border-top:4px solid #F57F17">
+        <div class="kpi-label">Points Balance</div>
+        <div class="kpi-value" style="color:#F57F17" id="kpi-pts">—</div>
+      </div>
+    </div>
+
+    <!-- PROFILE + HEALTH -->
+    <div class="two-col">
+
+      <div class="card">
+        <div class="card-title" style="color:#004A97">📈 Behavioural Profile</div>
+        <div id="radar-wrap">
+          <canvas id="radar-canvas" width="260" height="260"></canvas>
+          <div id="radar-sub">Multi-dimensional shopper behaviour analysis</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="color:#2E7D32">🌿 Health &amp; Sustainability</div>
+        <div id="score-badges">
+          <div class="score-badge" id="nutri-badge">A<span>NUTRI</span></div>
+          <div class="score-badge" id="eco-badge">A<span>ECO</span></div>
+          <div id="score-meta">
+            Avg basket quality scores<br/>
+            Top category: <strong id="top-cat">—</strong><br/>
+            E-commerce share: <strong id="ecom-share">—</strong>
+          </div>
+        </div>
+        <div class="sbar" id="sbar-health">
+          <div class="sbar-head">
+            <span class="sbar-label">Health Score</span>
+            <span class="sbar-val" id="health-val" style="color:#2E7D32">—</span>
+          </div>
+          <div class="sbar-track"><div class="sbar-fill" id="health-fill"></div></div>
+        </div>
+        <div class="sbar" id="sbar-sustain">
+          <div class="sbar-head">
+            <span class="sbar-label">Sustainability Score</span>
+            <span class="sbar-val" id="sustain-val" style="color:#2E7D32">—</span>
+          </div>
+          <div class="sbar-track"><div class="sbar-fill" id="sustain-fill"></div></div>
+        </div>
+        <div id="streak-box">🔥 <strong id="streak-val">0</strong>-week healthy basket streak</div>
+      </div>
+
+    </div>
+
+    <!-- REWARDS + ACTIVATION -->
+    <div class="two-col">
+
+      <div class="card">
+        <div class="card-title" style="color:#004A97">🎮 Rewards Journey</div>
+        <div id="prog-row">
+          <span id="prog-label">Progress to next reward</span>
+          <span id="prog-pct">—</span>
+        </div>
+        <div id="prog-track"><div id="prog-fill" style="width:0%"></div></div>
+        <div id="prog-sub">
+          <span id="prog-acc">—</span>
+          <span id="prog-need">—</span>
+        </div>
+        <div id="badges-label">Earned Badges:</div>
+        <div id="badges-wrap">—</div>
+        <div id="mission-box">
+          <div id="mission-title">🎯 Active Mission</div>
+          <div id="mission-text">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="color:#CC0000">📣 Omnichannel Activation</div>
+        <div id="act-grid">
+          <div class="act-cell">
+            <div class="act-cell-lbl">Channel</div>
+            <div class="act-cell-val" id="act-channel">—</div>
+          </div>
+          <div class="act-cell">
+            <div class="act-cell-lbl">Best Timing</div>
+            <div class="act-cell-val" id="act-timing">—</div>
+          </div>
+        </div>
+        <div id="offer-box">
+          <div id="offer-lbl">Offer Type</div>
+          <div id="offer-val">—</div>
+        </div>
+        <div id="why-box">
+          <strong style="color:#333">Why this activation?</strong><br/>
+          <span id="why-text">—</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- IMPACT -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title" style="color:#2E7D32">
+        📊 Expected Campaign Impact &nbsp;
+        <span style="font-size:10px;font-weight:400;color:#aaa;text-transform:none;letter-spacing:0">
+          — simulated model output
+        </span>
+      </div>
+      <div id="impact-row">
+        <div class="imp-card" style="border-color:#2E7D32">
+          <div class="imp-val" style="color:#2E7D32" id="imp-eng">—</div>
+          <div class="imp-label">Engagement Uplift</div>
+        </div>
+        <div class="imp-card" style="border-color:#43A047">
+          <div class="imp-val" style="color:#43A047" id="imp-health">—</div>
+          <div class="imp-label">Healthier Basket Shift</div>
+        </div>
+        <div class="imp-card" style="border-color:#66BB6A">
+          <div class="imp-val" style="color:#66BB6A" id="imp-sustain">—</div>
+          <div class="imp-label">Sustainability Gain</div>
+        </div>
+        <div class="imp-card" style="border-color:#004A97">
+          <div class="imp-val" style="color:#004A97" id="imp-ret">—</div>
+          <div class="imp-label">Retention Likelihood</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="footer">
+      Catalina Shopper Intelligence · GreenBasket Demo ·
+      Synthetic data for presentation purposes only
+    </div>
+
+  </div><!-- #dashboard -->
+</div><!-- #main -->
+
+<script>
+// ── Shopper data ──────────────────────────────────────────────────────────────
+const SHOPPERS = [
+  {id:"S001",name:"Marie D.",age:"35-44",segment:"Premium Loyal",persona:"Health Pioneer",spend:2847,basket:68.2,visits:8.5,ecom:28,category:"Fresh Produce",health:82,sustain:74,nutri:"A",eco:"B",tier:"Gold",pts:28470,need:1530,streak:6,b1:"Green Champion",b2:"Planet Saver",b3:"Loyal Explorer",channel:"App Push Notification",timing:"Weekday Morning",offer:"Double Points on Organic",mission:"Earn 2× points on organic & fresh produce this week",why:"High app engagement and strong health trajectory over 6 weeks",eng:"+34%",hsh:"+18%",sus:"+22%",ret:"89%"},
+  {id:"S002",name:"Thomas B.",age:"25-34",segment:"Regular Engaged",persona:"Eco Explorer",spend:1245,basket:58.6,visits:4.1,ecom:12,category:"Dairy & Eggs",health:61,sustain:88,nutri:"B",eco:"A",tier:"Silver",pts:12450,need:7550,streak:3,b1:"Planet Saver",b2:"Green Shopper",b3:"",channel:"Email Campaign",timing:"Weekend",offer:"Eco Challenge",mission:"Complete the Green Basket challenge and earn 500 bonus points",why:"Sustainability score in top 15% of segment and email open rate at 68%",eng:"+28%",hsh:"+9%",sus:"+31%",ret:"76%"},
+  {id:"S003",name:"Sophie L.",age:"45-54",segment:"Premium Loyal",persona:"Family Organiser",spend:3614,basket:82.1,visits:9.2,ecom:6,category:"Frozen & Ready",health:48,sustain:39,nutri:"C",eco:"C",tier:"Platinum",pts:36140,need:3860,streak:11,b1:"Family Hero",b2:"Loyal Explorer",b3:"Bulk Buyer",channel:"In-Store Coupon",timing:"Saturday Afternoon",offer:"Family Bundle Promo",mission:"20% off family-size packs this weekend only",why:"Large basket and weekend shopper profile with strong promo response history",eng:"+41%",hsh:"+7%",sus:"+5%",ret:"93%"},
+  {id:"S004",name:"Jean-Pierre M.",age:"55-64",segment:"Occasional",persona:"Routine Loyalist",spend:312,basket:43.2,visits:1.4,ecom:2,category:"Deli & Cheese",health:37,sustain:41,nutri:"C",eco:"C",tier:"Bronze",pts:3120,need:6880,streak:0,b1:"First Steps",b2:"",b3:"",channel:"Email Campaign",timing:"Tuesday Morning",offer:"Reactivation Offer",mission:"We miss you — €5 off your next in-store visit",why:"Low frequency and 45-day purchase gap — reactivation window is now",eng:"+22%",hsh:"+4%",sus:"+3%",ret:"52%"},
+  {id:"S005",name:"Isabelle R.",age:"25-34",segment:"Regular Engaged",persona:"Eco-Progressive",spend:1876,basket:71.4,visits:5.8,ecom:45,category:"Beverages",health:69,sustain:79,nutri:"B",eco:"A",tier:"Silver",pts:18760,need:6240,streak:4,b1:"Planet Saver",b2:"E-shopper",b3:"Green Champion",channel:"E-commerce Banner",timing:"Wednesday Evening",offer:"Sustainable Swap",mission:"Swap 3 products for eco-certified alternatives and earn 300 points",why:"High e-commerce share and rising sustainability score over 4 weeks",eng:"+37%",hsh:"+14%",sus:"+28%",ret:"82%"},
+  {id:"S006",name:"Luc F.",age:"35-44",segment:"Premium Loyal",persona:"Health Pioneer",spend:2198,basket:54.3,visits:8.1,ecom:18,category:"Fresh Produce",health:78,sustain:68,nutri:"A",eco:"B",tier:"Gold",pts:21980,need:18020,streak:7,b1:"Green Champion",b2:"Sporty Shopper",b3:"Loyal Explorer",channel:"App Push Notification",timing:"Monday Morning",offer:"Wellness Mission",mission:"Complete the Vitality Week challenge with 7 healthy baskets and earn 600 points",why:"Strong health trend and daily app activity — ideal for gamified mission",eng:"+31%",hsh:"+21%",sus:"+16%",ret:"91%"},
+  {id:"S007",name:"Nathalie V.",age:"45-54",segment:"Occasional",persona:"Smart Saver",spend:198,basket:34.7,visits:1.2,ecom:0,category:"Snacks & Confection",health:29,sustain:28,nutri:"D",eco:"D",tier:"Bronze",pts:1980,need:8020,streak:0,b1:"First Steps",b2:"",b3:"",channel:"In-Store Flyer",timing:"Friday",offer:"Price-Driven Bundle",mission:"Buy 2 get 1 free on all own-brand essentials this week",why:"Price-sensitive shopper — in-store only — responds to tangible value offers",eng:"+18%",hsh:"+3%",sus:"+2%",ret:"44%"},
+  {id:"S008",name:"Antoine C.",age:"25-34",segment:"Regular Engaged",persona:"Weekend Foodie",spend:1102,basket:76.8,visits:3.4,ecom:31,category:"Fresh Meat & Fish",health:55,sustain:51,nutri:"B",eco:"B",tier:"Silver",pts:11020,need:8980,streak:2,b1:"Foodie Explorer",b2:"E-shopper",b3:"",channel:"Weekend Email",timing:"Friday Evening",offer:"Premium Weekend Deal",mission:"Exclusive weekend offer — 30% off premium meats and fresh seafood",why:"High basket value and consistent weekend purchase pattern with e-com usage",eng:"+26%",hsh:"+8%",sus:"+11%",ret:"71%"},
+  {id:"S009",name:"Camille T.",age:"18-24",segment:"Occasional",persona:"Budget-Conscious",spend:156,basket:22.3,visits:1.8,ecom:8,category:"Bakery & Cereals",health:44,sustain:47,nutri:"C",eco:"B",tier:"Bronze",pts:1560,need:8440,streak:1,b1:"First Steps",b2:"",b3:"",channel:"App Push Notification",timing:"Thursday",offer:"Discovery Offer",mission:"Try 5 new healthy products and earn 200 bonus points per item",why:"Young discovery-phase shopper — gamified exploration drives trial",eng:"+19%",hsh:"+12%",sus:"+8%",ret:"58%"},
+  {id:"S010",name:"Pierre G.",age:"35-44",segment:"Premium Loyal",persona:"Family Organiser",spend:4102,basket:89.4,visits:11.6,ecom:9,category:"Frozen & Ready",health:52,sustain:45,nutri:"B",eco:"C",tier:"Platinum",pts:41020,need:3980,streak:9,b1:"Family Hero",b2:"Bulk Buyer",b3:"Loyal Explorer",channel:"In-Store Coupon",timing:"Saturday",offer:"Family Mega Bundle",mission:"Build your family bundle and save €15 on a basket over €80",why:"Highest spend in segment — family weekend shopper with very strong promo uptake",eng:"+44%",hsh:"+10%",sus:"+8%",ret:"95%"},
+  {id:"S011",name:"Emilie N.",age:"35-44",segment:"Regular Engaged",persona:"Health Pioneer",spend:1654,basket:62.8,visits:5.4,ecom:22,category:"Fresh Produce",health:75,sustain:66,nutri:"A",eco:"B",tier:"Silver",pts:16540,need:8460,streak:5,b1:"Green Champion",b2:"Sporty Shopper",b3:"",channel:"App Challenge",timing:"Morning",offer:"Wellness Challenge",mission:"7-day Vitality Challenge — log 7 green baskets and earn 600 points",why:"Health-oriented shopper with morning purchase habit and active app usage",eng:"+33%",hsh:"+19%",sus:"+14%",ret:"84%"},
+  {id:"S012",name:"Didier P.",age:"55-64",segment:"Occasional",persona:"Routine Loyalist",spend:445,basket:49.1,visits:1.9,ecom:0,category:"Wine & Spirits",health:31,sustain:33,nutri:"D",eco:"C",tier:"Bronze",pts:4450,need:5550,streak:0,b1:"First Steps",b2:"",b3:"",channel:"Email Campaign",timing:"Wednesday",offer:"Loyalty Bonus",mission:"Double points on your regular favourites this week",why:"Habitual buyer showing early signs of segment upgrade potential",eng:"+20%",hsh:"+5%",sus:"+4%",ret:"61%"},
+  {id:"S013",name:"Amelie S.",age:"25-34",segment:"Regular Engaged",persona:"Eco Explorer",spend:1389,basket:58.3,visits:4.7,ecom:52,category:"Plant-Based & Vegan",health:72,sustain:91,nutri:"A",eco:"A",tier:"Silver",pts:13890,need:11110,streak:3,b1:"Planet Saver",b2:"Green Champion",b3:"E-shopper",channel:"E-commerce Banner",timing:"Tuesday Evening",offer:"Eco Bundle Challenge",mission:"Complete the Zero-Waste basket challenge with 100% eco-certified products",why:"Highest eco score in dataset and strong e-com preference — perfect eco ambassador",eng:"+35%",hsh:"+11%",sus:"+38%",ret:"79%"},
+  {id:"S014",name:"Marc D.",age:"45-54",segment:"Premium Loyal",persona:"Eco-Progressive",spend:2563,basket:72.1,visits:7.4,ecom:33,category:"Fresh Produce",health:68,sustain:72,nutri:"B",eco:"A",tier:"Gold",pts:25630,need:14370,streak:4,b1:"Green Champion",b2:"Planet Saver",b3:"Loyal Explorer",channel:"Email + App Push",timing:"Weekend Morning",offer:"Seasonal Challenge",mission:"Spring Greens Challenge — 4 seasonal organic baskets earn 800 points",why:"Dual-channel responsive shopper with clear eco progression over last 4 weeks",eng:"+29%",hsh:"+15%",sus:"+25%",ret:"87%"},
+  {id:"S015",name:"Sandrine M.",age:"35-44",segment:"Occasional",persona:"Smart Saver",spend:278,basket:38.4,visits:1.6,ecom:0,category:"Frozen & Ready",health:33,sustain:35,nutri:"C",eco:"C",tier:"Bronze",pts:2780,need:7220,streak:0,b1:"First Steps",b2:"",b3:"",channel:"In-Store Flyer",timing:"Weekend",offer:"Reactivation Bundle",mission:"This weekend only — 3-for-2 on all frozen ready meals",why:"Convenience-driven and price-sensitive — simple tangible in-store offer drives return",eng:"+17%",hsh:"+4%",sus:"+3%",ret:"49%"}
+];
+
+// ── Colour helpers ────────────────────────────────────────────────────────────
+const PERSONA_COL = {
+  "Health Pioneer":   ["#E8F5E9","#2E7D32"],
+  "Eco Explorer":     ["#E0F2F1","#00695C"],
+  "Family Organiser": ["#E3F2FD","#1565C0"],
+  "Smart Saver":      ["#FFF8E1","#E65100"],
+  "Routine Loyalist": ["#F3E5F5","#6A1B9A"],
+  "Weekend Foodie":   ["#FFF3E0","#BF360C"],
+  "Budget-Conscious": ["#FFF8E1","#BF360C"],
+  "Eco-Progressive":  ["#E8F5E9","#2E7D32"],
+};
+const TIER_COL  = {Bronze:"#B87333",Silver:"#757575",Gold:"#F9A825",Platinum:"#455A64"};
+const BADGE_COL = {A:"#038141",B:"#85BB2F",C:"#FFCC00",D:"#EE8100",E:"#E63312"};
+const SEG_ICON  = {"Premium Loyal":"💎","Regular Engaged":"⭐","Occasional":"🌱"};
+const CH_ICON   = {
+  "App Push Notification":"📱","Email Campaign":"📧","In-Store Coupon":"🏪",
+  "E-commerce Banner":"🛒","Weekend Email":"📧","In-Store Flyer":"📄",
+  "Email + App Push":"📱📧","App Challenge":"🏆"
+};
+
+function scCol(v){return v>=70?"#2E7D32":(v>=50?"#F57F17":"#E53935")}
+function fmt(n){return n.toLocaleString("fr-FR")}
+
+// ── Radar chart ───────────────────────────────────────────────────────────────
+function drawRadar(s) {
+  const canvas = document.getElementById("radar-canvas");
+  const ctx    = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2, R = Math.min(W,H)*0.33;
+  const TMAP = {Bronze:.25,Silver:.5,Gold:.75,Platinum:1};
+  const vals = [
+    s.health/100,
+    s.sustain/100,
+    Math.min(s.visits/12,1),
+    Math.min(s.streak/8,1),
+    Math.min(s.ecom/50,1),
+    TMAP[s.tier]||.5
+  ];
+  const labels = ["Health","Sustain-\nability","Frequency","Engage-\nment","E-com","Loyalty"];
+  const N = vals.length;
+  const ang = vals.map((_,i)=>i*2*Math.PI/N - Math.PI/2);
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="#F6F9FF"; ctx.fillRect(0,0,W,H);
+
+  // Grid rings
+  ctx.setLineDash([3,3]); ctx.lineWidth=.8; ctx.strokeStyle="#C8D8F0";
+  for(let r=1;r<=4;r++){
+    ctx.beginPath();
+    ang.forEach((a,i)=>{
+      const x=cx+(R*r/4)*Math.cos(a), y=cy+(R*r/4)*Math.sin(a);
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    });
+    ctx.closePath(); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Spokes
+  ang.forEach(a=>{
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));
+    ctx.stroke();
+  });
+
+  // Fill polygon
+  ctx.beginPath();
+  ang.forEach((a,i)=>{
+    const x=cx+R*vals[i]*Math.cos(a), y=cy+R*vals[i]*Math.sin(a);
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  });
+  ctx.closePath();
+  ctx.fillStyle="#004A9733"; ctx.fill();
+  ctx.strokeStyle="#004A97"; ctx.lineWidth=2.5; ctx.stroke();
+
+  // Dots
+  ang.forEach((a,i)=>{
+    const x=cx+R*vals[i]*Math.cos(a), y=cy+R*vals[i]*Math.sin(a);
+    ctx.beginPath(); ctx.arc(x,y,4,0,2*Math.PI);
+    ctx.fillStyle="#004A97"; ctx.fill();
+  });
+
+  // Labels
+  const LR = R+26;
+  ctx.fillStyle="#444"; ctx.font='bold 9px "Segoe UI",Arial,sans-serif';
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ang.forEach((a,i)=>{
+    const x=cx+LR*Math.cos(a), y=cy+LR*Math.sin(a);
+    const lines=labels[i].split("\n");
+    lines.forEach((l,li)=>ctx.fillText(l,x,y+(li-(lines.length-1)/2)*13));
+  });
+}
+
+// ── Populate dropdown ─────────────────────────────────────────────────────────
+const dd = document.getElementById("shopper-dd");
+SHOPPERS.forEach(s=>{
+  const opt=document.createElement("option");
+  opt.value=s.id;
+  opt.textContent=`${s.name}  ·  ${s.persona}  (${s.segment})`;
+  dd.appendChild(opt);
+});
+
+// ── Render dashboard ──────────────────────────────────────────────────────────
+function render(id){
+  const s = SHOPPERS.find(x=>x.id===id);
+  if(!s) return;
+
+  const [pbg,pcol] = PERSONA_COL[s.persona]||["#E8F1FB","#004A97"];
+  const tc  = TIER_COL[s.tier]||"#757575";
+  const nc  = BADGE_COL[s.nutri]||"#aaa";
+  const ec  = BADGE_COL[s.eco]||"#aaa";
+  const hc  = scCol(s.health);
+  const sc2 = scCol(s.sustain);
+  const prog = Math.round(s.pts/(s.pts+s.need)*100);
+
+  // Header
+  document.getElementById("ph-name").textContent = s.name;
+  document.getElementById("ph-age").textContent  = s.age;
+  document.getElementById("ph-persona").textContent  = "✦ "+s.persona;
+  document.getElementById("ph-persona").style.cssText =
+    `background:${pbg};color:${pcol};padding:5px 14px;border-radius:20px;font-size:13px;font-weight:700`;
+  document.getElementById("ph-seg").textContent   = SEG_ICON[s.segment]+" "+s.segment;
+  document.getElementById("ph-tier").textContent  = "⭐ "+s.tier;
+  document.getElementById("ph-tier").style.background = tc;
+
+  // KPIs
+  document.getElementById("kpi-spend").textContent  = "€"+fmt(s.spend);
+  document.getElementById("kpi-basket").textContent = "€"+s.basket.toFixed(1);
+  document.getElementById("kpi-visits").textContent = s.visits;
+  document.getElementById("kpi-pts").textContent    = fmt(s.pts)+" pts";
+
+  // Nutri / Eco badges
+  const nb = document.getElementById("nutri-badge");
+  nb.style.background=nc; nb.childNodes[0].textContent=s.nutri;
+  const eb = document.getElementById("eco-badge");
+  eb.style.background=ec; eb.childNodes[0].textContent=s.eco;
+
+  // Score meta
+  document.getElementById("top-cat").textContent   = s.category;
+  document.getElementById("ecom-share").textContent = s.ecom+"%";
+
+  // Score bars
+  document.getElementById("health-val").textContent  = s.health+"/100";
+  document.getElementById("health-val").style.color  = hc;
+  document.getElementById("health-fill").style.cssText =
+    `width:${s.health}%;background:${hc};border-radius:6px;height:10px;transition:width .4s ease`;
+  document.getElementById("sustain-val").textContent = s.sustain+"/100";
+  document.getElementById("sustain-val").style.color = sc2;
+  document.getElementById("sustain-fill").style.cssText =
+    `width:${s.sustain}%;background:${sc2};border-radius:6px;height:10px;transition:width .4s ease`;
+  document.getElementById("streak-val").textContent = s.streak;
+
+  // Progress
+  document.getElementById("prog-pct").textContent  = prog+"%";
+  document.getElementById("prog-fill").style.width = prog+"%";
+  document.getElementById("prog-acc").textContent  = fmt(s.pts)+" pts accumulated";
+  document.getElementById("prog-need").textContent = fmt(s.need)+" pts to next reward";
+
+  // Badges
+  const bw = document.getElementById("badges-wrap");
+  bw.innerHTML="";
+  [s.b1,s.b2,s.b3].filter(b=>b).forEach(b=>{
+    const sp=document.createElement("span");
+    sp.className="earned-badge";
+    sp.textContent="🏅 "+b;
+    bw.appendChild(sp);
+  });
+  if(!bw.children.length){
+    bw.innerHTML='<span style="color:#aaa;font-size:12px">No badges yet — start your journey!</span>';
+  }
+
+  // Mission
+  document.getElementById("mission-text").textContent = s.mission;
+
+  // Activation
+  const chi = CH_ICON[s.channel]||"📣";
+  document.getElementById("act-channel").textContent = chi+" "+s.channel;
+  document.getElementById("act-timing").textContent  = "⏰ "+s.timing;
+  document.getElementById("offer-val").textContent   = "🎁 "+s.offer;
+  document.getElementById("why-text").textContent    = s.why;
+
+  // Impact
+  document.getElementById("imp-eng").textContent    = s.eng;
+  document.getElementById("imp-health").textContent = s.hsh;
+  document.getElementById("imp-sustain").textContent= s.sus;
+  document.getElementById("imp-ret").textContent    = s.ret;
+
+  // Radar
+  drawRadar(s);
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+dd.addEventListener("change", ()=>{
+  const dash = document.getElementById("dashboard");
+  dash.classList.add("fade");
+  setTimeout(()=>{
+    render(dd.value);
+    dash.classList.remove("fade");
+  }, 150);
+});
+
+// Initial render
+render(SHOPPERS[0].id);
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+segment,n_shoppers,avg_observed_spend,avg_frequency_pm,avg_redemption_rate,avg_nutri_score,avg_eco_score,avg_nova_group,pct_healthy,pct_sustainable,pct_ultra_processed,activation_mission,kpi_target
+Digital-First Shoppers,5127,551.765,2.412,0.058,2.101,4.062,3.678,0.028,0.209,0.804,Build your first Green Basket online,Digital basket health score; online healthy product mix
+Green High-Spenders,4220,1000.563,5.63,0.061,4.484,4.829,2.476,0.972,0.476,0.306,Maintain basket EcoScore >= 6; earn Green Champion badge,Retain spend; grow basket eco score; brand advocacy NPS
+Low-Engagement Occasionals,155067,49.942,1.487,0.007,1.846,3.869,3.997,0.003,0.154,0.997,Reactivation: make 2 purchases in 30 days,Reactivation rate; repeat purchase within 30 days
+Mainstream Regulars,4314,998.305,5.364,0.059,2.032,4.362,2.688,0.014,0.276,0.031,Healthy Habits: improve basket NutriScore by 0.5 in 8 weeks,Basket NutriScore trend; category diversification
+Offer-Responsive Shoppers,14685,878.007,4.607,0.802,2.01,4.094,3.957,0.018,0.228,0.971,Healthy Swap Challenge: activate 3 healthy offers this week,Healthy offer redemption rate; basket NutriScore delta
+Selective Buyers,183283,594.878,3.85,0.009,1.926,4.126,3.983,0.008,0.209,0.989,,
